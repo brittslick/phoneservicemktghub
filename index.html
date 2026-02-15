@@ -1135,7 +1135,7 @@
 
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = async function(e) {
                     priority.images.push(e.target.result);
                     await savePriorities();
                     renderPriorities();
@@ -1190,7 +1190,7 @@
                     let processedImages = 0;
                     Array.from(imageFiles).forEach(file => {
                         const reader = new FileReader();
-                        reader.onload = function(e) {
+                        reader.onload = async function(e) {
                             newUpdate.images.push(e.target.result);
                             processedImages++;
                             
