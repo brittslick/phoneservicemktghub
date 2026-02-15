@@ -905,7 +905,7 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         let priorities = [];
         let currentFilter = 'all';
         let editingId = null;
@@ -947,12 +947,28 @@
                 if (response.ok) {
                     const data = await response.json();
                     priorities = data.record || [];
+                } else if (response.status === 404) {
+                    // Bin doesn't exist yet, create it
+                    console.log('Bin not found, will create on first save');
+                    priorities = [];
                 } else {
+                    console.error('Error loading:', response.status);
                     priorities = [];
                 }
             } catch (error) {
                 console.error('Error loading data:', error);
-                priorities = [];
+                // If we can't reach JSONBin, try localStorage as fallback
+                try {
+                    const stored = localStorage.getItem('phone-service-priorities-backup');
+                    if (stored) {
+                        priorities = JSON.parse(stored);
+                        console.log('Loaded from localStorage backup');
+                    } else {
+                        priorities = [];
+                    }
+                } catch (e) {
+                    priorities = [];
+                }
             }
         }
 
@@ -961,6 +977,13 @@
             if (!isEditMode) {
                 alert('You must use the edit URL to make changes.');
                 return;
+            }
+
+            // Always save to localStorage as backup
+            try {
+                localStorage.setItem('phone-service-priorities-backup', JSON.stringify(priorities));
+            } catch (e) {
+                console.error('Failed to save to localStorage:', e);
             }
 
             try {
@@ -974,11 +997,12 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to save');
+                    throw new Error('Failed to save to JSONBin');
                 }
+                console.log('Data saved to JSONBin successfully');
             } catch (error) {
-                console.error('Failed to save priorities:', error);
-                alert('Failed to save data. Please try again.');
+                console.error('Failed to save priorities to JSONBin:', error);
+                alert('Warning: Could not save to cloud. Data saved locally only.');
             }
         }
 
@@ -1145,7 +1169,7 @@
         }
 
         // Delete image
-        function deleteImage(taskId, imgIndex) {
+        async function deleteImage(taskId, imgIndex) {
             if (!confirm('Are you sure you want to delete this image?')) return;
             
             const priority = priorities.find(p => p.id === taskId);
@@ -1385,7 +1409,7 @@
                 priorities.push(newTask);
             }
 
-            await await savePriorities();
+            await savePriorities();
             renderPriorities();
             closeModal();
         }
@@ -1470,7 +1494,9 @@
         });
 
         // Initialize on load
-        init();
+        (async function() {
+            await init();
+        })();
     </script>
 </body>
 </html>
